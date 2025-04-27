@@ -36,7 +36,11 @@ echo "3️⃣  Build & push backend image … preskakujem (image už stavia GitH
 # ───────────────────────────────┐
 #  4  PostgreSQL Flexible Server
 # ───────────────────────────────┘
-az postgres flexible-server create \
+if ! az postgres flexible-server show -g "$RG" -n "$POSTGRES" &>/dev/null; then
+  az postgres flexible-server create \
+     --name "$POSTGRES" \
+     … (ostatné parametre) …
+fi
   --name "$POSTGRES" \
   --resource-group "$RG" \
   --location northeurope \
