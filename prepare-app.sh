@@ -43,7 +43,7 @@ az postgres flexible-server create \
      --admin-user "$PG_ADMIN" \
      --admin-password "$PG_PASS" \
      --sku-name Standard_B1ms \
-     --storage-size 21 \
+     --storage-size 32 \
      --public-access 0.0.0.0-255.255.255.255
 
 PG_HOST="$(az postgres flexible-server show -g $RG -n $POSTGRES --query fullyQualifiedDomainName -o tsv)"
