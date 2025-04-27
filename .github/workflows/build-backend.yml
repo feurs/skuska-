@@ -17,6 +17,6 @@ jobs:
           password:      ${{ secrets.ACR_PWD }}
       - name: Build and push
         run: |
-          docker build -t ${{ secrets.ACR_SERVER }}/backend:v1 -f backend/Dockerfile.backend backend/
-          docker push    ${{ secrets.ACR_SERVER }}/backend:v1
+          docker build -t ${{ secrets.ACR_SERVER }}/backend:latest -f backend/Dockerfile.backend backend/
+          docker push    ${{ secrets.ACR_SERVER }}/backend:latest
 
