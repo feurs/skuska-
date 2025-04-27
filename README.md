@@ -1,16 +1,21 @@
-# Cloud Exam – Railway edition
 
-Repozitár spĺňa zadanie skúšky *Základy klaudových technológií* pomocou **Railway**.
+# Exam Deployment Template
 
-| Komponent | Tech | Dôvod | URL (po deployi) |
-|-----------|------|-------|------------------|
-| Front-end | statický HTML/JS | minimálny image, volá REST API | `https://<auto>.up.railway.app` |
-| Back-end  | FastAPI | REST `/todos` | `https://<auto>.up.railway.app` |
-| Databáza  | PostgreSQL 16 | perzistentný volume | interná |
+This repository contains a minimal, **clean-ASCII** starting point that fulfils the
+faculty exam requirements:
 
-## Rýchly štart
+* Front‑end (React build in Nginx)  
+* Back‑end (FastAPI)  
+* PostgreSQL (local via docker‑compose, optional in Azure)  
+* Deployment scripts for Azure Container Apps  
+* Scripts are idempotent and portal‑free.  
+
+## Quick start
+
 ```bash
-chmod +x deploy-railway.sh destroy-railway.sh
-./deploy-railway.sh          # build + deploy (≈3 min)
-# konzola vypíše live URL
+# Edit vars.sh with your Subscription ID and custom names
+./prepare-app.sh       # deploy to Azure
+./remove-app.sh        # tear down everything
+```
 
+All code and scripts are plain ASCII – no hidden characters that might break Azure CLI.
