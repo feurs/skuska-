@@ -45,6 +45,7 @@ az postgres flexible-server create \
      --sku-name Standard_B1ms \
      --storage-size 32 \
      --public-access 0.0.0.0-255.255.255.255
+     --version 16 \
 
 PG_HOST="$(az postgres flexible-server show -g $RG -n $POSTGRES --query fullyQualifiedDomainName -o tsv)"
 DB_URL="postgresql://${PG_ADMIN}:${PG_PASS}@${PG_HOST}:5432/postgres"
