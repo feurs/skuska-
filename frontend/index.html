@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>To-Do – Cloud Exam</title>
+  <style>
+    body{font-family:sans-serif;max-width:600px;margin:auto;padding:2rem}
+    input{padding:4px 6px}
+  </style>
+</head>
+<body>
+  <h1>To-Do list</h1>
+
+  <form id="f">
+    <input id="t" placeholder="Nová úloha…" required />
+    <button>Pridať</button>
+  </form>
+
+  <ul id="list"></ul>
+
+<script>
+const API = (window.VITE_BACKEND_URL || '').replace(/\/$/, '') || '/';
+
+async function load() {
+  const r = await fetch(API + '/todos');
+  const data = await r.json();
+  document.getElementById('list').innerHTML =
+    data.map(x => `<li>${x.text}</li>`).join('');
+}
+load();
+
+document.getElementById('f').onsubmit = async e => {
+  e.preventDefault();
+  const text = document.getElementById('t').value.trim();
+  if (!text) return;
+  await fetch(API + '/todos', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({text})
+  });
+  document.getElementById('t').value = '';
+  load();
+};
+</script>
+</body>
+</html>
+
