@@ -1,0 +1,61 @@
+name: CI/CD – build & deploy backend
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+
+env:
+  ACR_SERVER: crcloudexam1745721511.azurecr.io
+  ACR_REPO:   backend
+  IMAGE_TAG:  latest
+  RG:         cloudexam-rg
+  CA_NAME:    backend
+  CA_ENV:     cae-cloudexam-rg
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    # 1) Docker login to ACR
+    - uses: azure/docker-login@v1
+      with:
+        login-server: ${{ env.ACR_SERVER }}
+        username:     ${{ secrets.ACR_USER }}
+        password:     ${{ secrets.ACR_PWD }}
+
+    # 2) Build & push
+    - name: Build and push image
+      run: |
+        docker build -t $ACR_SERVER/$ACR_REPO:$IMAGE_TAG \
+                     -f backend/Dockerfile.backend backend/
+        docker push  $ACR_SERVER/$ACR_REPO:$IMAGE_TAG
+
+    # 3) Azure login
+    - uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    # 4) Create or update Container App
+    - name: Deploy to Container Apps
+      run: |
+        if az containerapp show -g $RG -n $CA_NAME &>/dev/null; then
+          echo "🔄 Updating existing Container App revision"
+          az containerapp update \
+            --name $CA_NAME --resource-group $RG \
+            --image $ACR_SERVER/$ACR_REPO:$IMAGE_TAG
+        else
+          echo "🆕 Creating Container App first time"
+          ACR_USER=${{ secrets.ACR_USER }}
+          ACR_PWD=${{ secrets.ACR_PWD }}
+          az containerapp create \
+            --name $CA_NAME --resource-group $RG \
+            --environment $CA_ENV --ingress external --target-port 8000 \
+            --registry-server $ACR_SERVER \
+            --registry-username $ACR_USER --registry-password $ACR_PWD \
+            --image $ACR_SERVER/$ACR_REPO:$IMAGE_TAG
+        fi
