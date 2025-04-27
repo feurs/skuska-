@@ -39,7 +39,7 @@ echo "3️⃣  Build & push backend image … preskakujem (image už stavia GitH
 az postgres flexible-server create \
   --name "$POSTGRES" \
   --resource-group "$RG" \
-  --location "$LOC" \
+  --location northeurope \
   --admin-user "$PG_ADMIN" \
   --admin-password "$PG_PASS" \
   --tier Burstable \
