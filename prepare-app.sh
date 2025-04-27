@@ -77,6 +77,7 @@ az containerapp env create -n "$ENV_CA" -g "$RG" -l "$LOC"
 # ───────────────────────────────┐
 #  6  Backend Container App
 # ───────────────────────────────┘
+az acr update -n "$ACR" --admin-enabled true
 ACR_USER=$(az acr credential show -n "$ACR" --query username -o tsv)
 ACR_PWD=$(az acr credential show -n "$ACR" --query passwords[0].value -o tsv)
 
