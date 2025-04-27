@@ -2,22 +2,34 @@
 set -euo pipefail
 
 # ───────────────────────────────┐
-#  Konfigurovateľné premenné
+#  KONFIGURÁCIA
 # ───────────────────────────────┘
 RG="cloudexam-rg"
-LOC="westeurope"
+LOC="westeurope"                   # frontend + ACR + Container Apps
+ACR="crcloudexam1745721511"        # už vytvorený registry
+IMG_TAG="v1"                       # tag, ktorý pushuje GitHub Action
 
-ACR="crcloudexam1745721511"        # loginServer = $ACR.azurecr.io
-IMG_TAG="v1"                       # musí zodpovedať CI buildu
-
-POSTGRES="pg-${RG}"
+# ► PostgreSQL — použijeme povolený región northeurope
+PG_REGION="northeurope"
+POSTGRES="pg-${RG}-$(date +%s)"    # unikátny názov
 PG_ADMIN="pgadmin"
 PG_PASS=$(openssl rand -base64 16)
 
+# ► Container Apps
 ENV_CA="cae-${RG}"
 APP_CA="backend"
 
-SWA_NAME="skuska"                  # názov Static Web App vytvorenej skôr
+# ► Static Web Apps (vytvorená skôr)
+SWA_NAME="skuska"
+
+# ───────────────────────────────┐
+#  0  Zaregistruj potrebné providery
+# ───────────────────────────────┘
+echo "🔑  Registering resource providers (一次)…"
+for p in Microsoft.ContainerRegistry Microsoft.DBforPostgreSQL \
+         Microsoft.App Microsoft.OperationalInsights; do
+  az provider register -n $p --wait
+done
 
 # ───────────────────────────────┐
 #  1  Resource Group
@@ -25,32 +37,34 @@ SWA_NAME="skuska"                  # názov Static Web App vytvorenej skôr
 az group create -n "$RG" -l "$LOC"
 
 # ───────────────────────────────┐
-#  2  Container Registry
-#     (ak už existuje, príkaz nič nemení)
+#  2  ACR (idempotent)
 # ───────────────────────────────┘
 az acr create -n "$ACR" -g "$RG" --sku Basic --location "$LOC" --admin-enabled false
 az acr login  -n "$ACR"
 
-echo "3️⃣  Build & push backend image … preskakujem (image už stavia GitHub Action)"
+echo "3️⃣  Build & push backend image … preskakujem (image pripraví GitHub Action)"
 
 # ───────────────────────────────┐
 #  4  PostgreSQL Flexible Server
+#     (len ak ešte neexistuje)
 # ───────────────────────────────┘
 if ! az postgres flexible-server show -g "$RG" -n "$POSTGRES" &>/dev/null; then
+  echo "🐘  Creating PostgreSQL server $POSTGRES in $PG_REGION…"
   az postgres flexible-server create \
-     --name "$POSTGRES" \
-     … (ostatné parametre) …
+       --name "$POSTGRES" \
+       --resource-group "$RG" \
+       --location "$PG_REGION" \
+       --admin-user "$PG_ADMIN" \
+       --admin-password "$PG_PASS" \
+       --tier Burstable \
+       --sku-name Standard_B1ms \
+       --version 16 \
+       --storage-size 32 \
+       --create-default-database Disabled \
+       --public-access 0.0.0.0-255.255.255.255
+else
+  echo "🐘  PostgreSQL server $POSTGRES already exists – skipping create."
 fi
-  --name "$POSTGRES" \
-  --resource-group "$RG" \
-  --location northeurope \
-  --admin-user "$PG_ADMIN" \
-  --admin-password "$PG_PASS" \
-  --tier Burstable \
-  --sku-name Standard_B1ms \
-  --version 16 \
-  --storage-size 32 \
-  --public-access 0.0.0.0-255.255.255.255
 
 PG_HOST="$(az postgres flexible-server show -g $RG -n $POSTGRES --query fullyQualifiedDomainName -o tsv)"
 DB_URL="postgresql://${PG_ADMIN}:${PG_PASS}@${PG_HOST}:5432/postgres"
@@ -72,17 +86,16 @@ az containerapp create \
   --image "$ACR.azurecr.io/backend:$IMG_TAG" \
   --env-vars DATABASE_URL="$DB_URL"
 
-BACKEND_URL="https://$(az containerapp show -n $APP_CA -g $RG --query properties.latestReadyRevisionfqdn -o tsv)"
+BACKEND_URL=$(az containerapp show -n $APP_CA -g $RG --query properties.latestReadyRevisionfqdn -o tsv)
+echo "✅  Backend running at: https://$BACKEND_URL"
 
 # ───────────────────────────────┐
-#  7  Nastavíme SWA premennú
+#  7  Update Static Web App env var
 # ───────────────────────────────┘
 az staticwebapp appsettings set \
    --name "$SWA_NAME" \
-   --setting-names VITE_BACKEND_URL="$BACKEND_URL"
+   --setting-names VITE_BACKEND_URL="https://${BACKEND_URL}"
 
-FRONTEND_URL="https://$(az staticwebapp show -n "$SWA_NAME" --query defaultHostname -o tsv)"
-
-echo "✅  Backend:  $BACKEND_URL"
-echo "✅  Front-end: $FRONTEND_URL"
+FRONT_URL=$(az staticwebapp show -n "$SWA_NAME" --query defaultHostname -o tsv)
+echo -e "\n🎉  Front-end URL (HTTPS): https://${FRONT_URL}\n"
 
