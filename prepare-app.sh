@@ -77,12 +77,17 @@ az containerapp env create -n "$ENV_CA" -g "$RG" -l "$LOC"
 # ───────────────────────────────┐
 #  6  Backend Container App
 # ───────────────────────────────┘
+ACR_USER=$(az acr credential show -n "$ACR" --query username -o tsv)
+ACR_PWD=$(az acr credential show -n "$ACR" --query passwords[0].value -o tsv)
+
 az containerapp create \
   --name "$APP_CA" \
   --resource-group "$RG" \
   --environment "$ENV_CA" \
   --ingress external --target-port 8000 \
   --registry-server "$ACR.azurecr.io" \
+  --registry-username "$ACR_USER" \
+  --registry-password "$ACR_PWD" \
   --image "$ACR.azurecr.io/backend:$IMG_TAG" \
   --env-vars DATABASE_URL="$DB_URL"
 
