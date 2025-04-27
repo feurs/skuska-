@@ -37,15 +37,16 @@ echo "3️⃣  Build & push backend image … preskakujem (image už stavia GitH
 #  4  PostgreSQL Flexible Server
 # ───────────────────────────────┘
 az postgres flexible-server create \
-     --name "$POSTGRES" \
-     --resource-group "$RG" \
-     --location "$LOC" \
-     --admin-user "$PG_ADMIN" \
-     --admin-password "$PG_PASS" \
-     --sku-name Standard_B1ms \
-     --storage-size 32 \
-     --public-access 0.0.0.0-255.255.255.255
-     --version 16 \
+  --name "$POSTGRES" \
+  --resource-group "$RG" \
+  --location "$LOC" \
+  --admin-user "$PG_ADMIN" \
+  --admin-password "$PG_PASS" \
+  --tier Burstable \
+  --sku-name Standard_B1ms \
+  --version 16 \
+  --storage-size 32 \
+  --public-access 0.0.0.0-255.255.255.255
 
 PG_HOST="$(az postgres flexible-server show -g $RG -n $POSTGRES --query fullyQualifiedDomainName -o tsv)"
 DB_URL="postgresql://${PG_ADMIN}:${PG_PASS}@${PG_HOST}:5432/postgres"
