@@ -1,0 +1,22 @@
+name: Build & Push backend
+on:
+  push:
+    paths:
+      - "backend/**"
+      - ".github/workflows/build-backend.yml"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Login to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ secrets.ACR_SERVER }}
+          username:      ${{ secrets.ACR_USER }}
+          password:      ${{ secrets.ACR_PWD }}
+      - name: Build and push
+        run: |
+          docker build -t ${{ secrets.ACR_SERVER }}/backend:v1 -f backend/Dockerfile.backend backend/
+          docker push    ${{ secrets.ACR_SERVER }}/backend:v1
+
